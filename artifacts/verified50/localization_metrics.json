@@ -1,0 +1,17 @@
+{
+  "dataset": "princeton-nlp/SWE-bench_Verified",
+  "split": "test",
+  "sample_size": 50,
+  "sample_seed": 20260713,
+  "file_match": {
+    "count": 38,
+    "total": 50,
+    "rate": 0.76
+  },
+  "function_match": {
+    "count": 29,
+    "total": 50,
+    "rate": 0.58
+  },
+  "note": "Computed with OrcaLoca artifact/parse_output_json.py against Verified golden stats for this fixed 50-instance sample."
+}

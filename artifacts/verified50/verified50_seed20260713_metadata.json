@@ -1,0 +1,248 @@
+{
+  "dataset": "princeton-nlp/SWE-bench_Verified",
+  "split": "test",
+  "seed": 20260713,
+  "sample_size": 50,
+  "method": "proportional stratified random sample by repo with floor allocation and largest remainders; random.sample within each repo; one deterministic same-repo replacement for search external failure",
+  "dataset_size": 500,
+  "repo_counts": {
+    "astropy/astropy": 22,
+    "django/django": 231,
+    "matplotlib/matplotlib": 34,
+    "mwaskom/seaborn": 2,
+    "pallets/flask": 1,
+    "psf/requests": 8,
+    "pydata/xarray": 22,
+    "pylint-dev/pylint": 10,
+    "pytest-dev/pytest": 19,
+    "scikit-learn/scikit-learn": 32,
+    "sphinx-doc/sphinx": 44,
+    "sympy/sympy": 75
+  },
+  "repo_allocations": {
+    "astropy/astropy": 2,
+    "django/django": 23,
+    "matplotlib/matplotlib": 3,
+    "mwaskom/seaborn": 0,
+    "pallets/flask": 0,
+    "psf/requests": 1,
+    "pydata/xarray": 2,
+    "pylint-dev/pylint": 1,
+    "pytest-dev/pytest": 2,
+    "scikit-learn/scikit-learn": 3,
+    "sphinx-doc/sphinx": 5,
+    "sympy/sympy": 8
+  },
+  "selected": [
+    {
+      "repo": "scikit-learn/scikit-learn",
+      "instance_id": "scikit-learn__scikit-learn-13142"
+    },
+    {
+      "repo": "pytest-dev/pytest",
+      "instance_id": "pytest-dev__pytest-5631"
+    },
+    {
+      "repo": "sympy/sympy",
+      "instance_id": "sympy__sympy-15599"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-15315"
+    },
+    {
+      "repo": "pylint-dev/pylint",
+      "instance_id": "pylint-dev__pylint-6528"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-14500"
+    },
+    {
+      "repo": "scikit-learn/scikit-learn",
+      "instance_id": "scikit-learn__scikit-learn-13439"
+    },
+    {
+      "repo": "sympy/sympy",
+      "instance_id": "sympy__sympy-13091"
+    },
+    {
+      "repo": "pydata/xarray",
+      "instance_id": "pydata__xarray-3095"
+    },
+    {
+      "repo": "sphinx-doc/sphinx",
+      "instance_id": "sphinx-doc__sphinx-9230"
+    },
+    {
+      "repo": "sympy/sympy",
+      "instance_id": "sympy__sympy-15017"
+    },
+    {
+      "repo": "matplotlib/matplotlib",
+      "instance_id": "matplotlib__matplotlib-25122"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-14351"
+    },
+    {
+      "repo": "sphinx-doc/sphinx",
+      "instance_id": "sphinx-doc__sphinx-9229"
+    },
+    {
+      "repo": "pydata/xarray",
+      "instance_id": "pydata__xarray-3151"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-13128"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-12039"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-13297"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-16938"
+    },
+    {
+      "repo": "astropy/astropy",
+      "instance_id": "astropy__astropy-14182"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-14580"
+    },
+    {
+      "repo": "sympy/sympy",
+      "instance_id": "sympy__sympy-20428"
+    },
+    {
+      "repo": "sympy/sympy",
+      "instance_id": "sympy__sympy-19495"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-11299"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-15098"
+    },
+    {
+      "repo": "sympy/sympy",
+      "instance_id": "sympy__sympy-23950"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-14034"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-12754"
+    },
+    {
+      "repo": "matplotlib/matplotlib",
+      "instance_id": "matplotlib__matplotlib-24637"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-15277"
+    },
+    {
+      "repo": "matplotlib/matplotlib",
+      "instance_id": "matplotlib__matplotlib-24970"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-16145"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-15467"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-11206"
+    },
+    {
+      "repo": "sympy/sympy",
+      "instance_id": "sympy__sympy-21930"
+    },
+    {
+      "repo": "scikit-learn/scikit-learn",
+      "instance_id": "scikit-learn__scikit-learn-13328"
+    },
+    {
+      "repo": "sphinx-doc/sphinx",
+      "instance_id": "sphinx-doc__sphinx-7748"
+    },
+    {
+      "repo": "astropy/astropy",
+      "instance_id": "astropy__astropy-14309"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-11095"
+    },
+    {
+      "repo": "sphinx-doc/sphinx",
+      "instance_id": "sphinx-doc__sphinx-9258"
+    },
+    {
+      "repo": "sphinx-doc/sphinx",
+      "instance_id": "sphinx-doc__sphinx-8269"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-15104"
+    },
+    {
+      "repo": "psf/requests",
+      "instance_id": "psf__requests-6028"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-16595",
+      "replacement_for": "django__django-7530"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-15554"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-12708"
+    },
+    {
+      "repo": "pytest-dev/pytest",
+      "instance_id": "pytest-dev__pytest-6197"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-14122"
+    },
+    {
+      "repo": "sympy/sympy",
+      "instance_id": "sympy__sympy-15349"
+    },
+    {
+      "repo": "django/django",
+      "instance_id": "django__django-15695"
+    }
+  ],
+  "replacement_events": [
+    {
+      "failed_instance_id": "django__django-7530",
+      "replacement_instance_id": "django__django-16595",
+      "repo": "django/django",
+      "reason": "OrcaLoca search repeatedly failed before producing searcher json due to Docker/container lifecycle during environment setup; kept repo allocation at 23/50.",
+      "selection_method": "deterministic same-repo replacement: minimum sha256(seed:repo:replacement:failed_id:candidate_id) among unsampled django/django Verified test instances"
+    }
+  ]
+}

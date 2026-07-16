@@ -1,0 +1,525 @@
+diff --git a/agentless/repair/repair.py b/agentless/repair/repair.py
+index 6790dea..a00ba01 100644
+--- a/agentless/repair/repair.py
++++ b/agentless/repair/repair.py
+@@ -29,6 +29,63 @@ from agentless.util.preprocess_data import (
+ )
+ from agentless.util.utils import cleanup_logger, load_json, load_jsonl, setup_logger
+ 
++
++def select_context_files_and_locs(loc, top_n):
++    pred_files = list(dict.fromkeys(loc["found_files"]))[:top_n]
++    found_edit_locs = loc.get("found_edit_locs", {})
++    file_to_edit_locs = {
++        pred_file: found_edit_locs[pred_file]
++        for pred_file in pred_files
++        if pred_file in found_edit_locs
++    }
++    return pred_files, file_to_edit_locs
++
++
++def write_empty_repair_output(
++    args, instance_id, write_lock=None, error_type=None, error_message=None
++):
++    output = {
++        "instance_id": instance_id,
++        "raw_output": [""],
++        "try_count": [0],
++        "all_generations": [[]],
++        "traj": [],
++        "prev_content": [[]],
++        "file_names": [[]],
++    }
++    if error_type is not None:
++        output["repair_error_type"] = error_type
++    if error_message is not None:
++        output["repair_error"] = error_message
++
++    if write_lock is not None:
++        write_lock.acquire()
++    try:
++        with open(args.output_file, "a") as f:
++            f.write(json.dumps(output) + "\n")
++    finally:
++        if write_lock is not None:
++            write_lock.release()
++
++
++def safe_process_loc(loc, args, swe_bench_data, prev_o, write_lock=None):
++    instance_id = loc["instance_id"]
++    try:
++        process_loc(loc, args, swe_bench_data, prev_o, write_lock)
++    except Exception as exc:
++        log_file = os.path.join(args.output_folder, "repair_logs", f"{instance_id}.log")
++        logger = setup_logger(log_file)
++        logger.exception("Repair failed for instance; writing empty output.")
++        cleanup_logger(logger)
++        write_empty_repair_output(
++            args,
++            instance_id,
++            write_lock,
++            error_type=type(exc).__name__,
++            error_message=str(exc),
++        )
++
++
+ repair_relevant_file_instruction = """
+ Below are some code segments, each from a relevant file. One or more of these files may contain bugs.
+ """
+@@ -369,7 +426,15 @@ def process_loc(loc, args, swe_bench_data, prev_o, write_lock=None):
+             write_lock.release()
+         return
+ 
+-    pred_files = loc["found_files"][: args.top_n]
++    pred_files, file_to_edit_locs = select_context_files_and_locs(loc, args.top_n)
++    omitted_edit_loc_files = sorted(
++        set(loc.get("found_edit_locs", {})) - set(file_to_edit_locs)
++    )
++    if omitted_edit_loc_files:
++        logger.info(
++            "Omitting edit locations outside top_n context files: %s",
++            omitted_edit_loc_files,
++        )
+     bench_data = [x for x in swe_bench_data if x["instance_id"] == instance_id][0]
+     problem_statement = bench_data["problem_statement"]
+     structure = get_repo_structure(
+@@ -398,12 +463,6 @@ def process_loc(loc, args, swe_bench_data, prev_o, write_lock=None):
+                 break
+ 
+         assert content is not None, f"{pred_file} file not found"
+-    # Construct top-n file context
+-    file_to_edit_locs = dict()
+-
+-    if "found_edit_locs" in loc:
+-        file_to_edit_locs = loc["found_edit_locs"]
+-
+     topn_content, file_loc_intervals = construct_topn_file_context(
+         file_to_edit_locs,
+         pred_files,
+@@ -540,6 +599,33 @@ def process_loc(loc, args, swe_bench_data, prev_o, write_lock=None):
+             sample_trajs = []
+ 
+     sample_responses.extend(sample_trajs)
++    if len(sample_responses) < args.max_samples and not args.mock:
++        logger.warning(
++            "Expected %s repair samples but received %s; requesting missing "
++            "samples one at a time for OpenAI-compatible backend compatibility.",
++            args.max_samples,
++            len(sample_responses),
++        )
++        single_sample_model = make_model(
++            model=args.model,
++            logger=logger,
++            backend=args.backend,
++            max_tokens=1024,
++            temperature=0.8,
++            batch_size=1,
++        )
++        while len(sample_responses) < args.max_samples:
++            if args.str_replace_format:
++                extra_trajs = single_sample_model.codegen_w_tool(
++                    message, num_samples=1, prompt_cache=True
++                )
++            else:
++                extra_trajs = single_sample_model.codegen(
++                    message, num_samples=1, prompt_cache=True
++                )
++            if not extra_trajs:
++                raise RuntimeError("OpenAI-compatible backend returned no repair sample")
++            sample_responses.extend(extra_trajs[:1])
+ 
+     count = 0
+     while count < args.max_samples:
+@@ -609,7 +695,7 @@ def repair(args):
+ 
+     if args.num_threads == 1:
+         for loc in tqdm(locs, total=len(locs), colour="MAGENTA"):
+-            process_loc(loc, args, swe_bench_data, prev_o)
++            safe_process_loc(loc, args, swe_bench_data, prev_o)
+     else:
+         with Manager() as manager:
+             write_lock = manager.Lock()
+@@ -618,7 +704,7 @@ def repair(args):
+             ) as executor:
+                 futures = {
+                     executor.submit(
+-                        process_loc, loc, args, swe_bench_data, prev_o, write_lock
++                        safe_process_loc, loc, args, swe_bench_data, prev_o, write_lock
+                     ): loc
+                     for loc in locs
+                 }
+@@ -707,9 +793,10 @@ def post_process_repair(args):
+                 original_file_content = raw_output["prev_content"][0][generation_idx]
+                 pred_file = raw_output["file_names"][0][generation_idx]
+ 
+-                pred_files = [loc for loc in locs if loc["instance_id"] == instance_id][
+-                    0
+-                ]["found_files"][: args.top_n]
++                loc = [loc for loc in locs if loc["instance_id"] == instance_id][0]
++                pred_files, selected_edit_locs = select_context_files_and_locs(
++                    loc, args.top_n
++                )
+ 
+                 git_diffs = ""
+                 raw_git_diffs = ""
+@@ -730,19 +817,14 @@ def post_process_repair(args):
+ 
+                 file_loc_intervals = dict()
+ 
+-                loc = [loc for loc in locs if loc["instance_id"] == instance_id][0]
+-
+                 for i, tmp_pred_file in enumerate(pred_files):
+                     if tmp_pred_file not in pred_file:
+                         continue
+-                    if (
+-                        "found_edit_locs" in loc
+-                        and tmp_pred_file in loc["found_edit_locs"]
+-                    ):
++                    if tmp_pred_file in selected_edit_locs:
+                         line_locs, context_intervals = transfer_arb_locs_to_locs(
+-                            loc["found_edit_locs"][tmp_pred_file],
++                            selected_edit_locs[tmp_pred_file],
+                             None,
+-                            loc["found_files"][i],
++                            tmp_pred_file,
+                             args.context_window,
+                             args.loc_interval,
+                             args.fine_grain_loc_only,
+@@ -812,12 +894,6 @@ def main():
+         "--model",
+         type=str,
+         default="claude-3-5-sonnet-20241022",
+-        choices=[
+-            "gpt-4o-2024-05-13",
+-            "deepseek-coder",
+-            "gpt-4o-mini-2024-07-18",
+-            "claude-3-5-sonnet-20241022",
+-        ],
+     )
+     parser.add_argument(
+         "--backend",
+diff --git a/agentless/test/generate_reproduction_tests.py b/agentless/test/generate_reproduction_tests.py
+index e31e2c4..6f75327 100644
+--- a/agentless/test/generate_reproduction_tests.py
++++ b/agentless/test/generate_reproduction_tests.py
+@@ -497,6 +497,7 @@ def main():
+         default="claude-3-5-sonnet-20241022",
+         choices=[
+             "gpt-4o-2024-05-13",
++            "gpt-5.4-mini",
+             "deepseek-coder",
+             "gpt-4o-mini-2024-07-18",
+             "claude-3-5-sonnet-20241022",
+diff --git a/agentless/test/select_regression_tests.py b/agentless/test/select_regression_tests.py
+index ff2ec20..72628bd 100644
+--- a/agentless/test/select_regression_tests.py
++++ b/agentless/test/select_regression_tests.py
+@@ -176,6 +176,7 @@ def main():
+         default="claude-3-5-sonnet-20241022",
+         choices=[
+             "gpt-4o-2024-05-13",
++            "gpt-5.4-mini",
+             "deepseek-coder",
+             "gpt-4o-mini-2024-07-18",
+             "claude-3-5-sonnet-20241022",
+diff --git a/agentless/util/api_requests.py b/agentless/util/api_requests.py
+index a48f2b7..31fdca6 100644
+--- a/agentless/util/api_requests.py
++++ b/agentless/util/api_requests.py
+@@ -1,3 +1,5 @@
++import os
++import random
+ import time
+ from typing import Dict, Union
+ 
+@@ -6,6 +8,28 @@ import openai
+ import tiktoken
+ 
+ 
++OPENAI_BASE_URL_KEYS = (
++    "OPENAI_BASE_URL",
++    "BASE_URL",
++    "API_BASE_URL",
++    "OPENAI_API_BASE",
++)
++
++
++def get_openai_base_url():
++    for key in OPENAI_BASE_URL_KEYS:
++        value = os.environ.get(key)
++        if value:
++            return value
++    return None
++
++
++def sleep_before_retry(retries, logger, reason):
++    delay = min(60, (2 ** min(retries, 5)) + random.uniform(0, 1))
++    logger.info(f"{reason}. Waiting {delay:.1f}s before retry {retries + 1}.")
++    time.sleep(delay)
++
++
+ def num_tokens_from_messages(message, model="gpt-3.5-turbo-0301"):
+     """Returns the number of tokens used by a list of messages."""
+     try:
+@@ -59,7 +83,11 @@ def request_chatgpt_engine(config, logger, base_url=None, max_retries=40, timeou
+     ret = None
+     retries = 0
+ 
+-    client = openai.OpenAI(base_url=base_url)
++    client = openai.OpenAI(
++        base_url=base_url or get_openai_base_url(),
++        timeout=timeout,
++        max_retries=0,
++    )
+ 
+     while ret is None and retries < max_retries:
+         try:
+@@ -74,27 +102,35 @@ def request_chatgpt_engine(config, logger, base_url=None, max_retries=40, timeou
+                 print(e)
+                 logger.info(e)
+                 raise Exception("Invalid API Request")
++            elif isinstance(e, openai.APIStatusError):
++                status_code = getattr(e, "status_code", None)
++                if status_code and (status_code >= 500 or status_code in {408, 409, 429}):
++                    logger.info(e)
++                    sleep_before_retry(retries, logger, f"Retryable API status {status_code}")
++                else:
++                    logger.info("Non-retryable API status")
++                    print(e)
++                    logger.info(e)
++                    raise
+             elif isinstance(e, openai.RateLimitError):
+                 print("Rate limit exceeded. Waiting...")
+                 logger.info("Rate limit exceeded. Waiting...")
+-                print(e)
+                 logger.info(e)
+-                time.sleep(5)
+-            elif isinstance(e, openai.APIConnectionError):
+-                print("API connection error. Waiting...")
+-                logger.info("API connection error. Waiting...")
+-                print(e)
++                sleep_before_retry(retries, logger, "Rate limit exceeded")
++            elif isinstance(e, (openai.APIConnectionError, openai.APITimeoutError)):
++                logger.info("API connection or timeout error. Waiting...")
+                 logger.info(e)
+-                time.sleep(5)
++                sleep_before_retry(retries, logger, "API connection or timeout error")
+             else:
+-                print("Unknown error. Waiting...")
+                 logger.info("Unknown error. Waiting...")
+-                print(e)
+                 logger.info(e)
+-                time.sleep(1)
++                sleep_before_retry(retries, logger, "Unknown OpenAI API error")
+ 
+         retries += 1
+ 
++    if ret is None:
++        raise RuntimeError(f"OpenAI-compatible request failed after {max_retries} retries")
++
+     logger.info(f"API response {ret}")
+     return ret
+ 
+@@ -136,8 +172,16 @@ def request_anthropic_engine(
+ ):
+     ret = None
+     retries = 0
++    max_retries = int(os.environ.get("AGENTLESS_ANTHROPIC_MAX_RETRIES", max_retries))
++    timeout = float(os.environ.get("AGENTLESS_ANTHROPIC_TIMEOUT", timeout))
+ 
+-    client = anthropic.Anthropic()
++    client_kwargs = {
++        "timeout": timeout,
++        "max_retries": 0,
++    }
++    if os.environ.get("ANTHROPIC_BASE_URL"):
++        client_kwargs["base_url"] = os.environ["ANTHROPIC_BASE_URL"]
++    client = anthropic.Anthropic(**client_kwargs)
+ 
+     while ret is None and retries < max_retries:
+         try:
+@@ -158,7 +202,10 @@ def request_anthropic_engine(
+                 logger.warning("Request timed out. Retrying...")
+             else:
+                 logger.warning("Retrying after an unknown error...")
+-            time.sleep(10 * retries)
++            sleep_before_retry(retries, logger, "Anthropic API error")
+         retries += 1
+ 
++    if ret is None:
++        raise RuntimeError(f"Anthropic request failed after {max_retries} retries")
++
+     return ret
+diff --git a/agentless/util/load_dataset_filter.py b/agentless/util/load_dataset_filter.py
+index 1ebfc4f..7fb81f2 100644
+--- a/agentless/util/load_dataset_filter.py
++++ b/agentless/util/load_dataset_filter.py
+@@ -5,11 +5,19 @@ from datasets import load_dataset as _load_dataset
+ 
+ 
+ def load_dataset(*args, **kwargs):
+-    # Check existance of target_inst_ids.json at repo root
+-    if not os.path.exists("target_inst_ids.json"):
++    target_inst_ids_path = os.environ.get("AGENTLESS_TARGET_INST_IDS")
++    if target_inst_ids_path == "":
+         return _load_dataset(*args, **kwargs)
+ 
+-    with open("target_inst_ids.json") as f:
++    # Check existence of target_inst_ids.json at repo root, unless an explicit
++    # target id file is provided for a non-default dataset/run.
++    if target_inst_ids_path is None:
++        target_inst_ids_path = "target_inst_ids.json"
++
++    if not os.path.exists(target_inst_ids_path):
++        return _load_dataset(*args, **kwargs)
++
++    with open(target_inst_ids_path) as f:
+         target_inst_ids = json.load(f)["target_inst_ids"]
+     return _load_dataset(*args, **kwargs).filter(
+         input_columns=["instance_id"],
+diff --git a/agentless/util/model.py b/agentless/util/model.py
+index fbb2eae..63a662c 100644
+--- a/agentless/util/model.py
++++ b/agentless/util/model.py
+@@ -52,50 +52,51 @@ class OpenAIChatDecoder(DecoderBase):
+     ) -> List[dict]:
+         if self.temperature == 0:
+             assert num_samples == 1
+-        batch_size = min(self.batch_size, num_samples)
+ 
+-        config = create_chatgpt_config(
+-            message=message,
+-            max_tokens=self.max_new_tokens,
+-            temperature=self.temperature,
+-            batch_size=batch_size,
+-            model=self.name,
+-        )
+-        ret = request_chatgpt_engine(config, self.logger)
+-        if ret:
+-            responses = [choice.message.content for choice in ret.choices]
+-            completion_tokens = ret.usage.completion_tokens
+-            prompt_tokens = ret.usage.prompt_tokens
+-        else:
+-            responses = [""]
+-            completion_tokens = 0
+-            prompt_tokens = 0
+-
+-        # The nice thing is, when we generate multiple samples from the same input (message),
+-        # the input tokens are only charged once according to openai API.
+-        # Therefore, we assume the request cost is only counted for the first sample.
+-        # More specifically, the `prompt_tokens` is for one input message,
+-        # and the `completion_tokens` is the sum of all returned completions.
+-        # Therefore, for the second and later samples, the cost is zero.
+-        trajs = [
+-            {
+-                "response": responses[0],
+-                "usage": {
+-                    "completion_tokens": completion_tokens,
+-                    "prompt_tokens": prompt_tokens,
+-                },
+-            }
+-        ]
+-        for response in responses[1:]:
+-            trajs.append(
+-                {
+-                    "response": response,
+-                    "usage": {
+-                        "completion_tokens": 0,
+-                        "prompt_tokens": 0,
+-                    },
+-                }
++        trajs = []
++        first_request = True
++        while len(trajs) < num_samples:
++            remaining = num_samples - len(trajs)
++            batch_size = min(self.batch_size, remaining)
++
++            config = create_chatgpt_config(
++                message=message,
++                max_tokens=self.max_new_tokens,
++                temperature=self.temperature,
++                batch_size=batch_size,
++                model=self.name,
+             )
++            ret = request_chatgpt_engine(config, self.logger)
++            if ret:
++                responses = [choice.message.content for choice in ret.choices]
++                completion_tokens = ret.usage.completion_tokens
++                prompt_tokens = ret.usage.prompt_tokens
++            else:
++                responses = [""]
++                completion_tokens = 0
++                prompt_tokens = 0
++
++            # Some OpenAI-compatible providers accept n>1 but return only one
++            # choice. Keep requesting the remaining samples so max_samples keeps
++            # its intended meaning.
++            for idx, response in enumerate(responses):
++                if len(trajs) >= num_samples:
++                    break
++                trajs.append(
++                    {
++                        "response": response,
++                        "usage": {
++                            "completion_tokens": completion_tokens
++                            if first_request and idx == 0
++                            else 0,
++                            "prompt_tokens": prompt_tokens
++                            if first_request and idx == 0
++                            else 0,
++                        },
++                    }
++                )
++            first_request = False
++
+         return trajs
+ 
+     def is_direct_completion(self) -> bool:
+diff --git a/agentless/util/postprocess_data.py b/agentless/util/postprocess_data.py
+index fd227d8..e884c80 100644
+--- a/agentless/util/postprocess_data.py
++++ b/agentless/util/postprocess_data.py
+@@ -707,6 +707,12 @@ def parse_str_replace_edit_commands(
+ def parse_diff_edit_commands(
+     commands, content, file_loc_intervals: list[tuple[int, int]]
+ ):
++    def parse_subcommand(subcommand):
++        subcommand = "\n".join(subcommand.splitlines()[1:-1])
++        if len(subcommand.split("\n=======\n")) != 2:
++            return None
++        return subcommand.split("\n=======\n")
++
+     def parse_for_threedots(original, replace, file_loc_intervals, content):
+         # if dot dot dot in replace, its always safe to remove it
+         if replace.startswith("...\n") and len(replace) > 4:
+@@ -809,7 +815,29 @@ def parse_diff_edit_commands(
+         )
+ 
+     if not replaced:
+-        print("not replaced")
++        for subcommand in commands:
++            if not subcommand.startswith("<<<<<<< SEARCH") and subcommand.endswith(
++                ">>>>>>> REPLACE"
++            ):
++                continue
++
++            parsed = parse_subcommand(subcommand)
++            if parsed is None:
++                continue
++            original, replace = parsed
++
++            original, replace = parse_for_threedots(
++                original, replace, file_loc_intervals, content
++            )
++
++            original = "\n" + original + "\n"
++            replace = "\n" + replace + "\n"
++            if original in content:
++                content = content.replace(original, replace, 1)
++                replaced = True
++
++        if not replaced:
++            print("not replaced")
+ 
+     return content
+ 

@@ -1,0 +1,73 @@
+diff --git a/Orcar/environment/benchmark.py b/Orcar/environment/benchmark.py
+index 5897596..a1a440a 100644
+--- a/Orcar/environment/benchmark.py
++++ b/Orcar/environment/benchmark.py
+@@ -125,7 +125,7 @@ class BenchmarkEnv:
+ 
+     @property
+     def cache_dir(self):
+-        return os.path.expanduser("~/.orcar")
++        return os.path.expanduser(os.environ.get("ORCAR_CACHE_DIR", "~/.orcar"))
+ 
+     def copy_to_env(self, contents: str, container_path: str) -> None:
+         copy_file_to_container(self.ctr_bash.ctr, contents, container_path)
+diff --git a/Orcar/load_cache_dataset.py b/Orcar/load_cache_dataset.py
+index a1422f5..76ba4a6 100644
+--- a/Orcar/load_cache_dataset.py
++++ b/Orcar/load_cache_dataset.py
+@@ -1,4 +1,5 @@
+ import os
++import json
+ import re
+ import subprocess
+ from pathlib import Path
+@@ -91,22 +92,9 @@ def load_filter_hf_dataset_explicit(
+         ds.to_json(dataset_path)
+     else:
+         data_files = {split: dataset_path}
+-        ft = Features(
+-            {
+-                "repo": Value("string"),
+-                "instance_id": Value("string"),
+-                "base_commit": Value("string"),
+-                "patch": Value("string"),
+-                "test_patch": Value("string"),
+-                "problem_statement": Value("string"),
+-                "hints_text": Value("string"),
+-                "created_at": Value("string"),
+-                "version": Value("string"),
+-                "FAIL_TO_PASS": Value("string"),
+-                "PASS_TO_PASS": Value("string"),
+-                "environment_setup_commit": Value("string"),
+-            }
+-        )
++        with open(dataset_path) as f:
++            cached_columns = json.loads(f.readline()).keys()
++        ft = Features({column: Value("string") for column in cached_columns})
+         ds = datasets.load_dataset(
+             "json", data_files=data_files, split=split, features=ft
+         )
+diff --git a/evaluation/process_output.py b/evaluation/process_output.py
+index 9cbf10a..28c2a39 100644
+--- a/evaluation/process_output.py
++++ b/evaluation/process_output.py
+@@ -117,6 +117,9 @@ def gather_search_result(run_arg: argparse.Namespace) -> Dict[str, Any]:
+     cache_dir = run_arg.cache_dir
+     output_dir = run_arg.output_dir
+     args = argparse.Namespace(**args_dict)
++    args.dataset = run_arg.dataset
++    args.filter_instance = run_arg.filter_instance
++    args.split = run_arg.split
+     ds = load_filter_hf_dataset(args)
+ 
+     env_wrapper = EnvWrapper(args)
+@@ -201,6 +204,9 @@ if __name__ == "__main__":
+     arg = argparse.ArgumentParser()
+     arg.add_argument("--cache_dir", type=str, default="~/.orcar/")
+     arg.add_argument("--output_dir", type=str, default="../tests/output/")
++    arg.add_argument("-d", "--dataset", type=str, default=args_dict["dataset"])
++    arg.add_argument("-f", "--filter_instance", type=str, default=args_dict["filter_instance"])
++    arg.add_argument("-s", "--split", type=str, default=args_dict["split"])
+     args = arg.parse_args()
+ 
+     expand_cache_dir = os.path.expanduser(args.cache_dir)
