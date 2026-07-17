@@ -57,12 +57,16 @@ The table below separates the pipeline stages and marks whether this Verified50 
 | Patch selection | Agentless-1.5 includes patch validation/reranking in its full workflow | Lightweight Agentless rerank with `--deduplicate`; no per-candidate reproduction/regression tests | Not fully aligned. This release selects one final patch from up to 40 candidates without running test-based patch validation. |
 | Official evaluation | SWE-bench official evaluation on Lite | `swebench.harness.run_evaluation` on Verified50 | Aligned in evaluator, not in dataset. |
 
+The OrcaLoca paper reports the final resolved rate for OrcaLoca + Agentless-1.5, but the paper does not provide a fully executable resolved-rate release script with the exact Agentless commit, repair prompt/parser variant, loc-file bridge, patch validation settings, and reranking parameters used for the reported table. The public OrcaLoca repository provides the localization pipeline and an Agentless integration path, but reproducing the resolved-rate stage still requires engineering glue around dataset selection, OrcaLoca-to-Agentless location conversion, API backend compatibility, repair output parsing, and final SWE-bench harness invocation. The local patches and scripts in this artifact document those glue steps explicitly.
+
 Patch selection in this release means:
 
 1. Agentless repair generates up to 40 candidate patches per instance.
 2. Candidate patches are deduplicated.
 3. Agentless lightweight rerank selects one final patch per instance for official SWE-bench evaluation.
 4. The lightweight selection step does not execute reproduction tests or regression tests for each candidate patch.
+
+A stricter follow-up is to run test-based patch validation before final official evaluation. The cleanest non-official selection signal is reproduction-test rerank: generate issue-specific reproduction tests with an LLM, verify that they reproduce the bug on the original code, run them on each candidate patch, rerank candidates with `--reproduction`, then re-run official SWE-bench evaluation on the newly selected final patches. Public Agentless also provides a regression-test rerank path, but in this code path the regression test directives are derived from SWE-bench `test_patch` metadata through the harness utility, so it should be reported separately as a diagnostic or paper-alignment experiment rather than as a no-leak primary result.
 
 The final resolved rate is conservative: all 50 sampled instances remain in the denominator. Transient Docker build/export failures were retried; the remaining empty-patch instance is counted as unresolved.
 
