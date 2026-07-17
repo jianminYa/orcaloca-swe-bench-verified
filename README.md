@@ -26,6 +26,20 @@ Sample: fixed seed `20260713`, repo-stratified 50 instances.
 
 The one missing official report is the empty-patch instance `sphinx-doc__sphinx-9258`. It is counted as unresolved in the conservative 20/50 resolved rate.
 
+## Comparison to the OrcaLoca Paper
+
+The OrcaLoca paper reports its headline result on SWE-bench Lite 300 with Claude 3.5 Sonnet and Agentless-1.5 repair integration:
+
+| Metric | OrcaLoca paper on SWE-bench Lite 300 | This artifact on SWE-bench Verified50 |
+| --- | ---: | ---: |
+| File Match | 250/300 = 83.33% | 38/50 = 76.00% |
+| Function Match | 196/300 = 65.33% | 29/50 = 58.00% |
+| Resolved Rate | 123/300 = 41.00% | 20/50 = 40.00% |
+
+This is not a same-dataset reproduction: the paper uses SWE-bench Lite, while this artifact uses a fixed 50-instance sample from SWE-bench Verified. The resolved-rate magnitude is close, but the localization metrics are lower on this Verified50 sample. The result should therefore be interpreted as a transfer reproduction of the OrcaLoca + Agentless-style pipeline, not as a replacement for the paper's SWE-bench Lite 300 table.
+
+Reference: OrcaLoca paper, Table 1 and Section 4.2.1, https://arxiv.org/abs/2502.00350.
+
 ## Configuration
 
 Localization:
@@ -85,6 +99,27 @@ docs/
   reproduction_report.md
   implementation_notes.md
 ```
+
+## Code Provenance
+
+This repository does not vendor the full upstream OrcaLoca or Agentless source trees. Instead, `scripts/00_clone_and_patch.sh` clones pinned upstream checkouts and applies the local compatibility patches.
+
+| Path | Provenance |
+| --- | --- |
+| `patches/orcaloca_verified_support.patch` | Local reproduction patch against upstream OrcaLoca. |
+| `patches/agentless_verified_repair.patch` | Local reproduction patch against upstream Agentless. |
+| `overlays/OrcaLoca/` | Full copies of the OrcaLoca files modified by the local patch, included for inspection. |
+| `overlays/Agentless/` | Full copies of the Agentless files modified by the local patch, included for inspection. |
+| `scripts/` | Local reproduction automation written for this artifact. |
+| `configs/` | Local environment templates only; no secrets. |
+| `artifacts/verified50/` | Outputs from the reproduction run: sample IDs, loc file, selected patches, metrics, and official SWE-bench reports. |
+| `docs/` | Local reproduction notes and implementation explanation. |
+
+Upstream source repositories:
+
+- OrcaLoca: https://github.com/fishmingyu/OrcaLoca
+- Agentless: https://github.com/OpenAutoCoder/Agentless
+- SWE-bench: https://github.com/swe-bench/SWE-bench
 
 ## API Environment
 
@@ -192,9 +227,3 @@ Full repo caches, Hugging Face caches, Docker layers, tmux logs, API environment
 This run is numerically close to the OrcaLoca paper's SWE-bench Lite resolved headline, but it is not a strict same-dataset comparison. The paper reports its main resolved result on SWE-bench Lite 300, while this artifact uses a fixed 50-instance sample from SWE-bench Verified.
 
 The repair stage is closer to the paper-style Agentless setup than earlier OpenAI-compatible `diff_format` experiments because it uses Claude-compatible repair and `str_replace_format`. However, this release uses lightweight rerank, not the full Agentless regression/reproduction-test rerank.
-
-## Upstream Sources
-
-- OrcaLoca: https://github.com/fishmingyu/OrcaLoca
-- Agentless: https://github.com/OpenAutoCoder/Agentless
-- SWE-bench: https://github.com/swe-bench/SWE-bench
