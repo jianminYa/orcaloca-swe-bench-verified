@@ -40,32 +40,31 @@ This is not a same-dataset reproduction: the paper uses SWE-bench Lite, while th
 
 Reference: OrcaLoca paper, Table 1 and Section 4.2.1, https://arxiv.org/abs/2502.00350.
 
-## Configuration
+## Configuration and Paper Alignment
 
-Localization:
+The table below separates the pipeline stages and marks whether this Verified50 artifact follows the OrcaLoca paper's SWE-bench Lite setup.
 
-- OrcaLoca search/localization
-- Model: `gpt-5.4-mini`
-- Backend: OpenAI-compatible API
+| Stage | OrcaLoca paper setup | This artifact | Alignment |
+| --- | --- | --- | --- |
+| Dataset | SWE-bench Lite 300, `test` split | SWE-bench Verified, fixed repo-stratified 50-instance sample, `test` split | Not aligned by design. The reproduction target was moved to Verified50. |
+| Localization method | OrcaLoca search/localization | OrcaLoca search/localization | Aligned in method. |
+| Localization model | Claude 3.5 Sonnet in the paper's reported Lite table | `gpt-5.4-mini` through an OpenAI-compatible backend | Not model-aligned. |
+| Loc-to-repair bridge | OrcaLoca localization integrated with Agentless-1.5 patch generation | OrcaLoca output converted to Agentless `loc_file` format | Partially aligned. This artifact includes compatibility fixes for Verified and Agentless input formatting. |
+| Repair framework | Agentless-1.5 repair integration | Agentless repair | Aligned in framework family. |
+| Repair model | Claude 3.5 Sonnet in the paper's reported Lite table | `claude-haiku-4-5-20251001` through an Anthropic-compatible backend | Not model-aligned, but closer than the earlier OpenAI-compatible `diff_format` repair attempt. |
+| Repair sampling | Agentless-style multi-candidate repair; the paper reports the final OrcaLoca + Agentless-1.5 result | `max_samples=40`, `top_n=3`, `context_window=10`, `--loc_interval`, `--cot`, `--str_replace_format` | Partially aligned. `max_samples=40` and search/replace-style repair are used, but the exact paper release pipeline is not fully specified in the OrcaLoca paper. |
+| Patch generation format | Agentless-style repair format; exact prompt/parser details are not fully specified in the OrcaLoca paper | `--str_replace_format` | Best-effort alignment with Agentless-style repair. |
+| Patch selection | Agentless-1.5 includes patch validation/reranking in its full workflow | Lightweight Agentless rerank with `--deduplicate`; no per-candidate reproduction/regression tests | Not fully aligned. This release selects one final patch from up to 40 candidates without running test-based patch validation. |
+| Official evaluation | SWE-bench official evaluation on Lite | `swebench.harness.run_evaluation` on Verified50 | Aligned in evaluator, not in dataset. |
 
-Repair:
+Patch selection in this release means:
 
-- Agentless repair
-- Model: `claude-haiku-4-5-20251001`
-- Backend: Anthropic-compatible API
-- Settings: `max_samples=40`, `top_n=3`, `context_window=10`, `--loc_interval`, `--cot`, `--str_replace_format`
+1. Agentless repair generates up to 40 candidate patches per instance.
+2. Candidate patches are deduplicated.
+3. Agentless lightweight rerank selects one final patch per instance for official SWE-bench evaluation.
+4. The lightweight selection step does not execute reproduction tests or regression tests for each candidate patch.
 
-Patch selection:
-
-- Agentless lightweight rerank with `--deduplicate`
-- Regression/reproduction-test rerank was not run for this release
-
-Official evaluation:
-
-- `swebench.harness.run_evaluation`
-- Dataset: `princeton-nlp/SWE-bench_Verified`
-- Split: `test`
-- Conservative final result after retrying transient Docker build/export failures
+The final resolved rate is conservative: all 50 sampled instances remain in the denominator. Transient Docker build/export failures were retried; the remaining empty-patch instance is counted as unresolved.
 
 ## Repository Layout
 
