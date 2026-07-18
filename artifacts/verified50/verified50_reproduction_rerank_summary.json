@@ -1,0 +1,35 @@
+{
+  "dataset": "princeton-nlp/SWE-bench_Verified",
+  "split": "test",
+  "sample_seed": 20260713,
+  "sample_size": 50,
+  "repair_settings": {
+    "context_window": 10,
+    "cot": true,
+    "format": "str_replace_format",
+    "loc_interval": true,
+    "max_samples": 40,
+    "top_n": 3
+  },
+  "patch_selection": {
+    "baseline": "Agentless lightweight rerank with deduplicate",
+    "follow_up": "Agentless reproduction-test rerank with deduplicate",
+    "reproduction_tests_generated_per_instance": 5,
+    "verified_reproduction_tests_selected": 29,
+    "regression_test_rerank": "not used for the primary follow-up because the public Agentless regression path derives test directives from SWE-bench test_patch metadata"
+  },
+  "lightweight_resolved": 20,
+  "reproduction_rerank_resolved": 22,
+  "resolved_rate_conservative_50": 0.44,
+  "lightweight_only_resolved": [],
+  "reproduction_only_resolved": [
+    "django__django-12708",
+    "pydata__xarray-3095"
+  ],
+  "empty_patch": [
+    "sphinx-doc__sphinx-9258"
+  ],
+  "error_ids": [],
+  "official_report": "artifacts/verified50/eval_reports/agentless.orcaloca_verified50_seed20260713_claude_s40_reproduction_rerank.json",
+  "predictions": "artifacts/verified50/all_preds_reproduction_rerank.jsonl"
+}

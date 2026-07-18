@@ -40,6 +40,10 @@ The reproduction required a small set of compatibility patches around dataset ha
 - `agentless/test/generate_reproduction_tests.py` and `agentless/test/select_regression_tests.py`
   - Permit `gpt-5.4-mini` as a model choice for optional regression/reproduction-test workflows.
 
-## Why Lightweight Rerank
+## Patch Selection
 
-This release reports the lightweight rerank result because it was sufficient to produce a stable official SWE-bench Verified50 resolved rate after repair alignment. Full Agentless regression/reproduction-test rerank remains the next step for stricter paper-style patch validation, but it is substantially more Docker-intensive.
+The initial release reported the lightweight rerank result because it was sufficient to produce a stable official SWE-bench Verified50 resolved rate after repair alignment.
+
+A follow-up reproduction-test rerank was then run using the same 40 repair candidates per instance. It generated up to 5 issue-specific reproduction tests per instance, verified tests on the original code, ran verified tests on candidate patches, and selected final patches with Agentless `--reproduction --deduplicate`. This increased the conservative resolved rate from 20/50 to 22/50.
+
+The public Agentless regression-test rerank path was not used as the primary follow-up result because that code path derives regression test directives from SWE-bench `test_patch` metadata through the harness utility. It should be treated as a separately labeled diagnostic or paper-alignment experiment, not as a no-leak primary selection signal.

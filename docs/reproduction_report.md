@@ -24,8 +24,9 @@ The final instance list is in `artifacts/verified50/verified50_seed20260713_inst
 2. Convert OrcaLoca outputs to Agentless `loc_file` format.
 3. Run Agentless repair with Claude-compatible backend and `max_samples=40`.
 4. Run Agentless lightweight rerank with deduplication.
-5. Evaluate final selected patches with the official SWE-bench harness.
-6. Retry transient Docker build/export failures with `max_workers=1`.
+5. Run a reproduction-test rerank follow-up using the same 40 repair candidates.
+6. Evaluate final selected patches with the official SWE-bench harness.
+7. Retry transient Docker build/export failures with `max_workers=1`.
 
 ## Metrics
 
@@ -33,8 +34,9 @@ The final instance list is in `artifacts/verified50/verified50_seed20260713_inst
 | --- | ---: |
 | File Match | 38/50 = 76.00% |
 | Function Match | 29/50 = 58.00% |
-| Resolved Rate | 20/50 = 40.00% |
-| Official reports | 49/50 |
+| Resolved Rate, lightweight rerank | 20/50 = 40.00% |
+| Resolved Rate, reproduction-test rerank | 22/50 = 44.00% |
+| Official reports, reproduction-test rerank | 49/50 |
 | Empty patch | 1/50 |
 | Docker infra errors after retry | 0 |
 
@@ -51,4 +53,6 @@ The main improvement over earlier low-result runs came from aligning the repair 
 - `max_samples=40`;
 - fewer non-model empty patches after dataset-filter and loc-file adaptation fixes.
 
-Lightweight rerank selected final patches from the 40 candidates. Full regression/reproduction-test rerank may still change the resolved rate, but that step was not included in this release.
+Lightweight rerank selected final patches from the 40 candidates and resolved 20/50. The reproduction-test rerank follow-up reused the same 40 candidates, generated and verified issue-specific reproduction tests, ran them on candidate patches, then selected final patches with `--reproduction --deduplicate`; it resolved 22/50. The two additional resolved instances were `django__django-12708` and `pydata__xarray-3095`, with no instance lost relative to lightweight rerank.
+
+The public Agentless regression-test rerank path was not used as the primary follow-up result because it derives regression test directives from SWE-bench `test_patch` metadata through the harness utility.
