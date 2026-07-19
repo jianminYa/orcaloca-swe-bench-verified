@@ -4,7 +4,7 @@
 
 This artifact evaluates OrcaLoca localization plus Agentless repair on a fixed 50-instance sample from SWE-bench Verified.
 
-It is intended to answer whether the pipeline can be transferred from SWE-bench Lite to SWE-bench Verified while keeping the key Agentless repair configuration close to the paper-style setup.
+It is intended to answer whether the pipeline can be transferred from SWE-bench Lite to SWE-bench Verified while keeping the key Agentless repair configuration close to the paper-style setup. It is not a same-dataset reproduction of the paper's SWE-bench Lite 300 table.
 
 ## Dataset and Sampling
 
@@ -31,7 +31,7 @@ The final instance list is in `artifacts/verified50/verified50_seed20260713_inst
 
 ## Metrics
 
-The primary completed result is the regression+reproduction rerank result because it is the closest completed match to the paper's Agentless patch-selection setup. The reproduction-test-only and lightweight rerank results are retained as ablations.
+The primary completed result is the regression+reproduction rerank result because it is the closest completed match to the paper's Agentless patch-selection setup in this artifact. The reproduction-test-only and lightweight rerank results are retained as ablations.
 
 | Metric | Result |
 | --- | ---: |
@@ -62,3 +62,5 @@ Lightweight rerank selected final patches from the 40 candidates and resolved 20
 The public Agentless regression+reproduction rerank then reused the same 40 candidates and selected final patches with `--regression --reproduction --deduplicate`. It also resolved 22/50, with no gain and no loss relative to reproduction-test-only rerank.
 
 The regression+reproduction result should still be read with one caveat: the public Agentless regression-test rerank path derives regression test directives from SWE-bench `test_patch` metadata through the harness utility. That makes it the closest paper-alignment experiment in this artifact, but not a no-leak selection signal.
+
+The comparison to the OrcaLoca paper should be stated carefully: the paper reports `123/300 = 41.00%` resolved on SWE-bench Lite, while this artifact reports `22/50 = 44.00%` on a fixed Verified50 sample. The resolved-rate magnitude is close, but the dataset, localization model, and repair model differ.

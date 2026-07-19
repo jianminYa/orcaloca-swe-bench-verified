@@ -15,7 +15,9 @@ Dataset: `princeton-nlp/SWE-bench_Verified`, split `test`
 
 Sample: fixed seed `20260713`, repo-stratified 50 instances.
 
-Primary completed result in this artifact: paper-aligned regression+reproduction rerank, `22/50 = 44.00%`.
+This is a Verified50 transfer reproduction, not the paper's original SWE-bench Lite 300 experiment.
+
+Closest paper-aligned completed configuration in this artifact: OrcaLoca localization, Agentless repair with 40 candidates and `str_replace_format`, and Agentless regression+reproduction patch selection. It resolves `22/50 = 44.00%`.
 
 The reproduction-test-only and lightweight rerank results are retained as ablations, not the final recommended number.
 
@@ -32,40 +34,51 @@ The reproduction-test-only and lightweight rerank results are retained as ablati
 
 This does not mean 49 instances passed. It means the official SWE-bench harness evaluated 49 non-empty patches. The one unevaluated instance is the empty-patch instance `sphinx-doc__sphinx-9258`, and it is counted as unresolved in the conservative resolved-rate denominator.
 
+Patch selection summary:
+
+| Selection strategy | Tests used to select from 40 candidates | Resolved |
+| --- | --- | ---: |
+| Lightweight rerank | None; deduplication/Agentless lightweight selection only | 20/50 = 40.00% |
+| Reproduction-only rerank | LLM-generated reproduction tests | 22/50 = 44.00% |
+| Regression+reproduction rerank | Public Agentless regression validation plus reproduction tests | 22/50 = 44.00% |
+
+Adding reproduction-test rerank improved the result from 20/50 to 22/50. Adding public Agentless regression validation did not change the resolved set on this Verified50 sample.
+
 ## Comparison to the OrcaLoca Paper
 
-The OrcaLoca paper reports its headline result on SWE-bench Lite 300 with Claude 3.5 Sonnet and Agentless-1.5 repair integration:
+The OrcaLoca paper reports its headline result on SWE-bench Lite 300 with Claude 3.5 Sonnet and Agentless-1.5 repair integration. This artifact changes the dataset to a fixed 50-instance sample from SWE-bench Verified, so the numbers below are a transfer comparison rather than a same-dataset reproduction.
 
 | Metric | OrcaLoca paper on SWE-bench Lite 300 | This artifact on SWE-bench Verified50 |
 | --- | ---: | ---: |
 | File Match | 250/300 = 83.33% | 38/50 = 76.00% |
 | Function Match | 196/300 = 65.33% | 29/50 = 58.00% |
-| Resolved Rate | 123/300 = 41.00% | 22/50 = 44.00% with regression+reproduction rerank; 22/50 = 44.00% with reproduction-only rerank; 20/50 = 40.00% with lightweight rerank |
+| Resolved Rate | 123/300 = 41.00% | 22/50 = 44.00% with closest paper-aligned regression+reproduction rerank |
 
-This is not a same-dataset reproduction: the paper uses SWE-bench Lite, while this artifact uses a fixed 50-instance sample from SWE-bench Verified. The resolved-rate magnitude is close, but the localization metrics are lower on this Verified50 sample. The result should therefore be interpreted as a transfer reproduction of the OrcaLoca + Agentless-style pipeline, not as a replacement for the paper's SWE-bench Lite 300 table.
+The resolved-rate magnitude is close to the paper's Lite result, but the localization metrics are lower on this Verified50 sample. Because the dataset and models differ, this result should be interpreted as evidence that the OrcaLoca + Agentless-style pipeline transfers to Verified50, not as a replacement for the paper's SWE-bench Lite table.
 
 Reference: OrcaLoca paper, Table 1 and Section 4.2.1, https://arxiv.org/abs/2502.00350.
 
 ## Configuration and Paper Alignment
 
-The table below separates the pipeline stages and marks whether this Verified50 artifact follows the OrcaLoca paper's SWE-bench Lite setup.
+The table below separates what was matched to the paper from what intentionally differs in this Verified50 run.
 
-| Stage | OrcaLoca paper setup | This artifact | Alignment |
-| --- | --- | --- | --- |
-| Dataset | SWE-bench Lite 300, `test` split | SWE-bench Verified, fixed repo-stratified 50-instance sample, `test` split | Not aligned by design. The reproduction target was moved to Verified50. |
-| Localization method | OrcaLoca search/localization | OrcaLoca search/localization | Aligned in method. |
-| Localization model | Claude 3.5 Sonnet in the paper's reported Lite table | `gpt-5.4-mini` through an OpenAI-compatible backend | Not model-aligned. |
-| Loc-to-repair bridge | OrcaLoca localization integrated with Agentless-1.5 patch generation | OrcaLoca output converted to Agentless `loc_file` format | Partially aligned. This artifact includes compatibility fixes for Verified and Agentless input formatting. |
-| Repair framework | Agentless-1.5 repair integration | Agentless repair | Aligned in framework family. |
-| Repair model | Claude 3.5 Sonnet in the paper's reported Lite table | `claude-haiku-4-5-20251001` through an Anthropic-compatible backend | Not model-aligned, but closer than the earlier OpenAI-compatible `diff_format` repair attempt. |
-| Repair sampling | Agentless-style multi-candidate repair; the paper reports the final OrcaLoca + Agentless-1.5 result | `max_samples=40`, `top_n=3`, `context_window=10`, `--loc_interval`, `--cot`, `--str_replace_format` | Partially aligned. `max_samples=40` and search/replace-style repair are used, but the exact paper release pipeline is not fully specified in the OrcaLoca paper. |
-| Patch generation format | Agentless-style repair format; exact prompt/parser details are not fully specified in the OrcaLoca paper | `--str_replace_format` | Best-effort alignment with Agentless-style repair. |
-| Patch selection | Agentless-1.5 uses both regression and reproduction test results to select among the 40 candidates | Three completed results are included: lightweight Agentless rerank with `--deduplicate`, reproduction-test rerank with `--reproduction --deduplicate`, and paper-aligned rerank with `--regression --reproduction --deduplicate` | Aligned at the public Agentless workflow level. Caveat: public Agentless regression-test directives are derived from SWE-bench `test_patch` metadata through the harness utility, so this result is labeled as paper-aligned rather than no-leak. |
-| Official evaluation | SWE-bench official evaluation on Lite | `swebench.harness.run_evaluation` on Verified50 | Aligned in evaluator, not in dataset. |
+| Component | OrcaLoca paper setup | This artifact | Status | Likely impact |
+| --- | --- | --- | --- | --- |
+| Dataset | SWE-bench Lite 300, `test` split | SWE-bench Verified, fixed repo-stratified 50-instance sample, `test` split | Different by design | High |
+| Localization method | OrcaLoca search/localization | OrcaLoca search/localization | Aligned | Low |
+| Localization model | Claude 3.5 Sonnet | `gpt-5.4-mini` through an OpenAI-compatible backend | Different | Medium/high |
+| Loc-to-repair bridge | OrcaLoca output converted to Agentless format | OrcaLoca output converted to Agentless `loc_file` format with Verified compatibility fixes | Workflow-aligned, implementation adapted | Medium |
+| Repair framework | Agentless-1.5 repair integration | Public Agentless repair path | Framework-family aligned | Medium |
+| Repair model | Claude 3.5 Sonnet | `claude-haiku-4-5-20251001` through an Anthropic-compatible backend | Different, but Claude-family | Medium |
+| Repair sampling and context | 40 patches, `str_replace_format`, Agentless repair configuration | `max_samples=40`, `top_n=3`, `context_window=10`, `--loc_interval`, `--cot`, `--str_replace_format` | Mostly aligned | Low/medium |
+| Patch selection | Regression and reproduction tests select among 40 candidates | `--regression --reproduction --deduplicate` | Closest public workflow alignment | Medium; see caveat below |
+| Official evaluation | SWE-bench official harness | `swebench.harness.run_evaluation` on Verified50 | Evaluator aligned, dataset different | Low for evaluator, high for comparability |
 
 The OrcaLoca paper does describe the key resolved-stage setup: OrcaLoca output is converted to Agentless format; Agentless Repair, Patch Validation, and Patch Selection are integrated; Claude-3.5-Sonnet-20241022 is used; 40 patches are generated with `str_replace_format`; both regression and reproduction tests are used for patch validation and final candidate selection. The upstream OrcaLoca repository also points users from `evaluation/process_output.py` to `evaluation/orcar_agentless/README.md` and `third_party/Agentless/README_orcar.md`, which contain an OrcaLoca-to-Agentless repair/validation/rerank recipe for SWE-bench Lite.
 
 What is not provided as a single turn-key artifact is a fully pinned, end-to-end script for the exact paper table that also covers this repository's Verified50 target, third-party API backends, dataset/cache relocation, retry/resume behavior, and the postprocessing fixes needed for this run. The local patches and scripts in this artifact document those glue steps explicitly.
+
+Patch-selection caveat: the public Agentless regression-test collection path derives regression test directives from SWE-bench `test_patch` metadata through the SWE-bench harness utility. This appears to be part of the public Agentless reproduction recipe, and it is the closest completed match to the paper-style patch-selection step in this artifact. It should be reported as a paper/Agentless-alignment result, not as a strict no-leak selection signal.
 
 Lightweight patch selection in this release means:
 
@@ -84,7 +97,7 @@ The reproduction-test rerank follow-up reuses the same 40 candidate patches per 
 
 This follow-up improved the conservative resolved rate from 20/50 to 22/50.
 
-The stricter paper-style selection step reuses the same 40 candidate patches, runs public Agentless regression-test validation for candidate patches, then selects with `rerank.py --regression --reproduction --deduplicate`. It also resolves 22/50 on this Verified50 sample: it neither gains nor loses any instance relative to reproduction-test-only rerank. One caveat is that the public Agentless regression-test collection path runs test directives derived from SWE-bench `test_patch` metadata through the SWE-bench harness utility. This appears to be part of the public Agentless reproduction recipe, but it is labeled here as a paper/Agentless-alignment experiment rather than presented as a no-leak selection signal.
+The stricter paper-style selection step reuses the same 40 candidate patches, runs public Agentless regression-test validation for candidate patches, then selects with `rerank.py --regression --reproduction --deduplicate`. It also resolves 22/50 on this Verified50 sample: it neither gains nor loses any instance relative to reproduction-test-only rerank.
 
 The final resolved rate is conservative: all 50 sampled instances remain in the denominator. Transient Docker build/export failures were retried; the remaining empty-patch instance is counted as unresolved.
 
