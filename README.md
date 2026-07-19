@@ -26,11 +26,11 @@ The reproduction-test-only and lightweight rerank results are retained as ablati
 | Resolved Rate, regression+reproduction rerank | 22/50 = 44.00% |
 | Resolved Rate, reproduction-test rerank | 22/50 = 44.00% |
 | Resolved Rate, lightweight rerank | 20/50 = 40.00% |
-| Official reports, regression+reproduction rerank | 49/50 |
+| Official harness evaluated non-empty patches | 49/50 |
 | Empty patch | 1/50 |
 | Docker infra errors after retry | 0 |
 
-The one missing official report is the empty-patch instance `sphinx-doc__sphinx-9258`. It is counted as unresolved in the conservative resolved-rate denominator.
+This does not mean 49 instances passed. It means the official SWE-bench harness evaluated 49 non-empty patches. The one unevaluated instance is the empty-patch instance `sphinx-doc__sphinx-9258`, and it is counted as unresolved in the conservative resolved-rate denominator.
 
 ## Comparison to the OrcaLoca Paper
 
