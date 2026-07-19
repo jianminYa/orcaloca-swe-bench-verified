@@ -25,20 +25,22 @@ The final instance list is in `artifacts/verified50/verified50_seed20260713_inst
 3. Run Agentless repair with Claude-compatible backend and `max_samples=40`.
 4. Run Agentless lightweight rerank with deduplication.
 5. Run a reproduction-test rerank follow-up using the same 40 repair candidates.
-6. Evaluate final selected patches with the official SWE-bench harness.
-7. Retry transient Docker build/export failures with `max_workers=1`.
+6. Run public Agentless regression+reproduction rerank using the same 40 repair candidates.
+7. Evaluate final selected patches with the official SWE-bench harness.
+8. Retry transient Docker build/export failures with `max_workers=1`.
 
 ## Metrics
 
-The primary completed result is the reproduction-test rerank result. The lightweight rerank result is retained as an ablation.
+The primary completed result is the regression+reproduction rerank result because it is the closest completed match to the paper's Agentless patch-selection setup. The reproduction-test-only and lightweight rerank results are retained as ablations.
 
 | Metric | Result |
 | --- | ---: |
 | File Match | 38/50 = 76.00% |
 | Function Match | 29/50 = 58.00% |
+| Resolved Rate, regression+reproduction rerank | 22/50 = 44.00% |
 | Resolved Rate, reproduction-test rerank | 22/50 = 44.00% |
 | Resolved Rate, lightweight rerank | 20/50 = 40.00% |
-| Official reports, reproduction-test rerank | 49/50 |
+| Official reports, regression+reproduction rerank | 49/50 |
 | Empty patch | 1/50 |
 | Docker infra errors after retry | 0 |
 
@@ -57,6 +59,6 @@ The main improvement over earlier low-result runs came from aligning the repair 
 
 Lightweight rerank selected final patches from the 40 candidates and resolved 20/50. The reproduction-test rerank follow-up reused the same 40 candidates, generated and verified issue-specific reproduction tests, ran them on candidate patches, then selected final patches with `--reproduction --deduplicate`; it resolved 22/50. The two additional resolved instances were `django__django-12708` and `pydata__xarray-3095`, with no instance lost relative to lightweight rerank.
 
-The public Agentless regression-test rerank path was not used as the primary follow-up result because it derives regression test directives from SWE-bench `test_patch` metadata through the harness utility.
+The public Agentless regression+reproduction rerank then reused the same 40 candidates and selected final patches with `--regression --reproduction --deduplicate`. It also resolved 22/50, with no gain and no loss relative to reproduction-test-only rerank.
 
-For strict paper-style alignment, the remaining step is to run the public Agentless `--regression --reproduction` rerank using the same 40 repair candidates and report it separately. The OrcaLoca paper states that both regression and reproduction tests were used for patch validation and candidate selection in the SWE-bench Lite result, but this artifact's current primary result uses reproduction-test rerank only.
+The regression+reproduction result should still be read with one caveat: the public Agentless regression-test rerank path derives regression test directives from SWE-bench `test_patch` metadata through the harness utility. That makes it the closest paper-alignment experiment in this artifact, but not a no-leak selection signal.

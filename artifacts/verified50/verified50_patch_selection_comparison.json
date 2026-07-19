@@ -1,0 +1,12 @@
+{
+  "lightweight_resolved": 20,
+  "regression_reproduction_empty": [
+    "sphinx-doc__sphinx-9258"
+  ],
+  "regression_reproduction_errors": [],
+  "regression_reproduction_only_resolved_vs_reproduction": [],
+  "regression_reproduction_resolved": 22,
+  "reproduction_only_resolved": 22,
+  "reproduction_only_resolved_lost_by_regression_reproduction": [],
+  "total": 50
+}
