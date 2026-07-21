@@ -7,6 +7,8 @@ Archive release:
 - GitHub Release: https://github.com/jianminYa/orcaloca-swe-bench-verified/releases/tag/verified50-intermediates-20260721
 - Archive: `orcaloca_verified50_intermediates_seed20260713_20260721.tar.zst`
 - SHA-256: `03e1290fe488e8fab3fa5ad5bfe947c1b406db421ba0b2694e5953101f07b0a4`
+- Localization process archive: `orcaloca_verified50_localization_process_seed20260713_20260721.tar.zst`
+- Localization process SHA-256: `16c476d355b928ae10c5da6ad9c7ab3902c10aaad0a7f803194c891859a1e615`
 
 Inspect commands:
 
@@ -16,6 +18,17 @@ sha256sum orcaloca_verified50_intermediates_seed20260713_20260721.tar.zst
 tar --zstd -xf orcaloca_verified50_intermediates_seed20260713_20260721.tar.zst
 cd orcaloca_verified50_intermediates_seed20260713
 less artifact_build/verified50_intermediates_README.md
+less artifact_build/MANIFEST.txt
+```
+
+The main archive focuses on the end-to-end repair/rerank/evaluation artifacts. The separate localization process archive preserves the detailed OrcaLoca search-stage evidence and is the best place to inspect localization ability.
+
+```bash
+wget https://github.com/jianminYa/orcaloca-swe-bench-verified/releases/download/verified50-intermediates-20260721/orcaloca_verified50_localization_process_seed20260713_20260721.tar.zst
+sha256sum orcaloca_verified50_localization_process_seed20260713_20260721.tar.zst
+tar --zstd -xf orcaloca_verified50_localization_process_seed20260713_20260721.tar.zst
+cd orcaloca_verified50_localization_process_seed20260713
+less artifact_build/localization_process_README.md
 less artifact_build/MANIFEST.txt
 ```
 
@@ -157,6 +170,60 @@ Some directory names still contain `swe-bench-lite` because the public Agentless
 
 - Compact summaries used by the repository README and report.
 - These are the fastest files to inspect for final counts.
+
+## Localization Process Archive
+
+The localization process archive contains the files that show how OrcaLoca reached its bug-location conclusions:
+
+```text
+orcaloca_verified50_localization_process_seed20260713/
+  artifact_build/
+    localization_process_README.md
+    MANIFEST.txt
+
+  metadata/
+    verified50_seed20260713_instance_ids.txt
+    verified50_seed20260713_metadata.json
+
+  orcaloca_output/
+    <instance_id>/
+      searcher_<instance_id>.json
+      trace_analyzer_<instance_id>.json
+
+  orcaloca_log/
+    <instance_id>/
+      Orcar.search_agent.log
+      action_history.log
+      search_queue.log
+      Orcar.trace_analysis_agent.log
+      orcar_total.log
+      ...
+
+  agentless_loc/
+    loc_orcar_outputs.jsonl
+```
+
+Use these files as follows:
+
+- `searcher_<instance_id>.json`: compact final localization conclusion and `bug_locations`.
+- `trace_analyzer_<instance_id>.json`: trace-analysis output when produced.
+- `Orcar.search_agent.log`: detailed prompt/tool/search process for one issue.
+- `action_history.log`: ordered search actions, useful for explaining the iterative localization behavior.
+- `search_queue.log`: queue state and priority changes during search.
+- `Orcar.trace_analysis_agent.log`: trace-analysis stage details.
+- `orcar_total.log`: combined per-instance run log.
+- `agentless_loc/loc_orcar_outputs.jsonl`: final localization converted to Agentless repair input.
+
+Coverage in the uploaded archive:
+
+| Artifact | Coverage |
+| --- | ---: |
+| `searcher_<instance_id>.json` | 50/50 |
+| `Orcar.search_agent.log` | 50/50 |
+| `action_history.log` | 50/50 |
+| `search_queue.log` | 50/50 |
+| `Orcar.trace_analysis_agent.log` | 50/50 |
+| `trace_analyzer_<instance_id>.json` | 40/50 |
 
 ## LLM Configuration
 

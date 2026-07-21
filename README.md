@@ -279,6 +279,8 @@ The complete local intermediate outputs are available as a GitHub Release asset:
 - Release: https://github.com/jianminYa/orcaloca-swe-bench-verified/releases/tag/verified50-intermediates-20260721
 - Archive: `orcaloca_verified50_intermediates_seed20260713_20260721.tar.zst`
 - SHA-256: `03e1290fe488e8fab3fa5ad5bfe947c1b406db421ba0b2694e5953101f07b0a4`
+- Localization process archive: `orcaloca_verified50_localization_process_seed20260713_20260721.tar.zst`
+- Localization process SHA-256: `16c476d355b928ae10c5da6ad9c7ab3902c10aaad0a7f803194c891859a1e615`
 - File tree and inspection guide: [`docs/intermediate_artifacts_guide.md`](docs/intermediate_artifacts_guide.md)
 
 The archive contains:
@@ -302,6 +304,8 @@ less orcaloca_verified50_intermediates_seed20260713/artifact_build/verified50_in
 ```
 
 The archive excludes Docker layers, Hugging Face cache, cloned repository caches, conda environments, and private API configuration files.
+
+The separate localization process archive preserves the full OrcaLoca search-stage evidence for the 50 sampled instances: `searcher_<instance_id>.json`, `trace_analyzer_<instance_id>.json` when produced, `Orcar.search_agent.log`, `action_history.log`, `search_queue.log`, `Orcar.trace_analysis_agent.log`, and `orcar_total.log`. It is the best artifact for inspecting OrcaLoca's localization behavior rather than only the final repair result.
 
 ## Important Caveats
 
