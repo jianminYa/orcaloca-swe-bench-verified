@@ -272,6 +272,36 @@ The included artifacts are intentionally compact:
 
 Full repo caches, Hugging Face caches, Docker layers, tmux logs, API environment files, and raw repair logs are not included.
 
+## Full Intermediate Archive
+
+The complete local intermediate outputs are available as a GitHub Release asset:
+
+- Release: https://github.com/jianminYa/orcaloca-swe-bench-verified/releases/tag/verified50-intermediates-20260721
+- Archive: `orcaloca_verified50_intermediates_seed20260713_20260721.tar.zst`
+- SHA-256: `03e1290fe488e8fab3fa5ad5bfe947c1b406db421ba0b2694e5953101f07b0a4`
+
+The archive contains:
+
+- OrcaLoca-to-Agentless loc file;
+- raw Agentless repair generations for the 40-candidate Claude-compatible run;
+- processed and normalized candidate patches;
+- reproduction-test and regression-test validation results for candidate patches;
+- reproduction-only and regression+reproduction rerank outputs;
+- official SWE-bench harness reports;
+- top-level execution logs;
+- a `MANIFEST.txt` and an archive-local README explaining how to inspect the files.
+
+To inspect it:
+
+```bash
+wget https://github.com/jianminYa/orcaloca-swe-bench-verified/releases/download/verified50-intermediates-20260721/orcaloca_verified50_intermediates_seed20260713_20260721.tar.zst
+sha256sum orcaloca_verified50_intermediates_seed20260713_20260721.tar.zst
+tar --zstd -xf orcaloca_verified50_intermediates_seed20260713_20260721.tar.zst
+less orcaloca_verified50_intermediates_seed20260713/artifact_build/verified50_intermediates_README.md
+```
+
+The archive excludes Docker layers, Hugging Face cache, cloned repository caches, conda environments, and private API configuration files.
+
 ## Important Caveats
 
 This run is numerically close to the OrcaLoca paper's SWE-bench Lite resolved headline, but it is not a strict same-dataset comparison. The paper reports its main resolved result on SWE-bench Lite 300, while this artifact uses a fixed 50-instance sample from SWE-bench Verified.
