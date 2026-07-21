@@ -279,6 +279,7 @@ The complete local intermediate outputs are available as a GitHub Release asset:
 - Release: https://github.com/jianminYa/orcaloca-swe-bench-verified/releases/tag/verified50-intermediates-20260721
 - Archive: `orcaloca_verified50_intermediates_seed20260713_20260721.tar.zst`
 - SHA-256: `03e1290fe488e8fab3fa5ad5bfe947c1b406db421ba0b2694e5953101f07b0a4`
+- File tree and inspection guide: [`docs/intermediate_artifacts_guide.md`](docs/intermediate_artifacts_guide.md)
 
 The archive contains:
 
