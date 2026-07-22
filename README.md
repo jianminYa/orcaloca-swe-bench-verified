@@ -9,6 +9,10 @@ It is a reproduction artifact, not a fork intended to replace upstream OrcaLoca 
 - the fixed Verified50 sample metadata;
 - localization, repair, rerank, and official evaluation outputs needed to inspect the reported result.
 
+The full patched source tree is published separately:
+
+https://github.com/jianminYa/orcaloca-swe-bench-verified-code
+
 ## Result
 
 Dataset: `princeton-nlp/SWE-bench_Verified`, split `test`
